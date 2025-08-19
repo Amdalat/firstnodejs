@@ -5,6 +5,7 @@ dotenv.config();
 
 const Auth = require("../Models/AuthModel");
 const User = require("../Models/UserModel");
+const wrapper = require("../utils/wrapper");
 
 const signUp = async (req, res) => {
     const { email, password, name, age } = req.body;
@@ -44,18 +45,31 @@ const signIn = async (req, res) => {
         return res.status(400).json({ message: "Fill in all fields" });
     }
     
-    const user = await Auth.findOne({ email });
+    // const user = await Auth.findOne({ email });
+    const user = await Auth.findByEmail(email);
+    console.log("newmethod2", user);
+
     if (!user) {
         return res.status(404).json({ message: "User not found" });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+    // or
+    // function ispasswordvalid(typedpassword, userpassword) {
+    //     const isPasswordValid = await bcrypt.compare(password, user.password);
+    //     return isPasswordValid;
+    // }
+    // const isPasswordValid = ispasswordvalid(password, user.password);
+
+    const isPasswordValid = await user.comparepassword(password);
+    console.log("newmethod", isPasswordValid);
+    
+
     if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid password" });
     }    
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SE ,{expiresIn: "1h"});
-    // const token = jwt.sign({ id: user._id }, process.env.JWT_SE);
-    // res.status(200).json({ token });
+    const token = jwt.sign({ id: user.userid }, process.env.JWT_SE, {expiresIn: "1h"});
+    // res.status(200).json({ token });    
 
     res.cookie('access_token', token, { // Set the token in a cookie
         httpOnly: true, // Make the cookie accessible only by the web server
@@ -65,8 +79,23 @@ const signIn = async (req, res) => {
         expires: new Date(Date.now() + 60*60*1000),
     })
 
-    return res.status(200).json({ message: "SignIn Successful" });
+    return res.status(200).json({ message: "SignIn Successful", token });
 
 };
 
-module.exports = {signUp, signIn};
+// const getAllAuths = wrapper(thefunction)
+const getAllAuths = wrapper( async(req, res) => {
+    
+        const auths = await Auth.find();
+        res.status(200).json({authcount: auths.length, auths});
+    
+    // try{
+    //     const auths = await Auth.find();
+    //     res.status(200).json({authcount: auths.length, auths});
+    // } catch(err){
+    //     res.status(400).json({message: err.message});
+    // }
+});
+
+
+module.exports = {signUp, signIn, getAllAuths};

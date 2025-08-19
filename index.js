@@ -14,7 +14,7 @@ const authRouter = require("./Routes/AuthRoutes");
 app.use("/api/v1/auth/", authRouter);
 
 const postRouter = require("./Routes/PostRoutes");
-app.use("/api/v1/posts/", postRouter);
+app.use(postRouter);
 
 mongoose.connect(process.env.MONGO_URL).then(()=>{
     console.log('CONNECTED TO MONGODB');
@@ -30,6 +30,9 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`we are running on port ${port}`);
 }) 
+
+// http://localhost:5000/api/v1/auth/signin
+// http://localhost:5000/api/v1/users/id/:id
 
 //extra
 //to create password without controller  

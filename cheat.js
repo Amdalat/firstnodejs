@@ -276,3 +276,84 @@ const disconnectDB = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
+// multer setup for file uploads
+const multer = require('multer'); // Import multer for handling file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads/')
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({ storage: storage })
+// example route for file upload  
+postRouter.post("/createPost", upload.single('image'), createPost);
+
+
+const createPost = async (req, res) => {
+  if (!req.body.title || !req.body.content) {
+    return res.status(400).json({ message: 'Title and content are required' });
+  }
+  const slug = req.body.title
+    .split(' ')
+    .join('-')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
+  // return res.json(req.body)
+  // return res.json({'res':req.file})
+
+  const newPost = new Post({
+    ...req.body,
+    slug,
+    userId: req.user.id,
+    img: req.file ? req.file.path : '',
+  });
+
+  try {
+    const savedPost = await newPost.save();
+    res.status(201).json(savedPost);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating post', error });
+  }
+}
+
+// update post using put method
+const updatePost = async (req, res) => {
+  const { id } = req.params;
+  const { title, content } = req.body;
+  const slug = title.split(' ').join('-').toLowerCase();
+
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(id, { title, content, slug }, { new: true });
+    if (!updatedPost) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.status(200).json(updatedPost);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating post', error });
+  }
+};
+
+// update post using patch method
+const patchPost = async (req, res) => {
+  const { id } = req.params;
+  // const { title, content } = req.body;
+  // const slug = title.split(' ').join('-').toLowerCase();
+  // removed slug generation as it may not be needed
+
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedPost) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.status(200).json(updatedPost);
+  } catch (error) {
+    res.status(500).json({ message: 'Error patching post', error });
+  }
+};
